@@ -1,0 +1,153 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Nested Fluid Grids</title>
+<link rel="stylesheet" href="fluidbase.css" type="text/css">
+<style id="gridlayout"></style>
+<script src="deps/jquery-1.7.min.js"></script>
+<script src="deps/underscore.js"></script>
+<script src="fluidcss.js"></script>
+<script src="fluidbuilder.js"></script>
+<script>
+var ffloat = function(val) {
+    val = val+'';
+    bits = val.split('.');
+    if (bits.length > 1) {
+        return bits[0]+'.'+bits[1].slice(0, 2);
+    }
+    return val;
+};
+
+$(document).ready(function() {
+
+var generate = function() {
+    var numColumns, maxWidth, minWidth, maxHalfGap, bits,
+        settings, minMaxMap, percentageMap, css, html;
+
+    bits = window.location.hash.slice(1).split('/');
+
+    if (bits.length != 4) {
+        return;
+    }
+    numColumns = bits[0];
+    maxWidth = bits[1];
+    minWidth = bits[2];
+    maxHalfGap = bits[3];
+
+    $('input[name=numcolumns]').val(numColumns);
+    $('input[name=maxwidth]').val(maxWidth);
+    $('input[name=minwidth]').val(minWidth);
+    $('input[name=maxhalfgap]').val(maxHalfGap);
+
+    settings = fluidcss.makeSettings({
+        numColumns: numColumns,
+        maxWidth: maxWidth,
+        minWidth: minWidth,
+        maxHalfGap: maxHalfGap
+    });
+    minMaxMap = fluidcss.getMinMaxMap(settings);
+    percentageMap = fluidcss.getPercentageMap(settings, minMaxMap);
+    css = fluidcss.getGridCSS(settings, minMaxMap, percentageMap);
+
+    html = fluidbuilder.makeTestHTML(settings.numColumns, minMaxMap);
+    $('#grid').replaceWith(html);
+
+
+    var keys, table, thead, tbody, tr;
+    table = $('<table></table>');
+    thead = $('<thead><tr><th></th><th>min</th><th>max</th></tr></thead>');
+    table.append(thead);
+    tbody = $('<tbody></tbody>');
+    table.append(tbody);
+
+    keys = _.keys(minMaxMap);
+    _.each(keys, function(key) {
+        tbody.append(
+            '<tr><td>'+key+'</td>'+
+            '<td>'+ffloat(minMaxMap[key].minWidth)+'</td>'+
+            '<td>'+ffloat(minMaxMap[key].maxWidth)+'</td></tr>');
+    });
+    $('#debug').html(table);
+
+    //console.log(css);
+    $('#gridlayout').html(css);
+
+    $('#generatedcss').val(css);
+};
+
+$(window).bind('hashchange', function() {
+    generate();
+});
+
+$('form').submit(function() {
+    var numColumns, maxWidth, minWidth, maxHalfGap;
+
+    numColumns = $('input[name=numcolumns]').val();
+    maxWidth = $('input[name=maxwidth]').val();
+    minWidth = $('input[name=minwidth]').val();
+    maxHalfGap = $('input[name=maxhalfgap]').val();
+
+    window.location.hash = '#'+
+        numColumns+'/'+maxWidth+'/'+minWidth+'/'+maxHalfGap;
+
+    return false;
+});
+
+if (!window.location.hash) {
+    $('form').submit();
+} else {
+    generate();
+}
+
+});
+</script>
+</head>
+<body>
+
+<form>
+<label for="numcolumns">
+# of columns
+<input type="text" name="numcolumns" value="12">
+</label>
+
+<label for="maxwidth">
+max width
+<input type="text" name="maxwidth" value="940">
+</label>
+
+<label for="minwidth">
+min width
+<input type="text" name="minwidth" value="470">
+</label>
+
+<label for="maxhalfwidth">
+max half-gap
+<input type="text" name="maxhalfgap" value="10">
+</label>
+
+<input type="submit" name="go" value="go">
+</form>
+
+
+<div class="help">
+<div>
+Try
+<a href="#12/940/470/10">12/940/470/10</a>,
+<a href="#3/640/320/10">3/640/320/10</a>,
+<a href="#16/940/470/10">16/940/470/10</a>,
+<a href="#12/1410/470/15">12/1410/470/15</a>,
+<a href="#12/1180/590/10">12/1180/590/10</a>,
+<a href="#12/1312/328/16">12/1312/328/16</a> or
+<a href="#12/1180/295/10">12/1180/295/10</a>.
+</div>
+<div>width = (column width*num columns) + (gap*(num columns-1))</div>
+<div>940 = (60*12+20*11). 470 = (30*12+10*11). 470 is exactly half of 940. Get it?</div>
+<div>You should probably keep <a href="http://css-tricks.com/7288-percentage-bugs-in-webkit/">webkit's problems with percentages</a> in mind. Firefox gets it perfectly right. Opera seems to be hopeless. Haven't tested in Internet Explorer yet.</div>
+</div>
+
+<div id="grid"></div>
+
+</body>
+</html>
+
